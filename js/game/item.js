@@ -46,7 +46,7 @@ Item.prototype.setType = function(_type) {
 	this.type = _type;
 };
 
-var ItemFactory = function() {
+function ItemFactory() {
 		var _ = {};
 	_ = {
 		currentID: 0,

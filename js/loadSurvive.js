@@ -26,69 +26,100 @@ var loadSurvive = function () {
             doorGreen0Closed: "img/doors/closed-door-token-green/r_0.png",
             doorGreen90Closed: "img/doors/closed-door-token-green/r_90.png"
         },
-        ressourceLoaded = function (ressourceId) {
-            scriptsLoaded[ressourceId] = true;
-        },
-        loaderWatcher = function () {
-            var isAllLoaded = true,
-                scriptId;
-            for (scriptId in scriptsLoaded) {
-                if (scriptsLoaded[scriptId] === false) {
-                    isAllLoaded = false;
-                    break;
-                }
-            }
-
-            if (isAllLoaded) {
-                allRessourcesAreLoaded();
-            } else {
-                watchCount = watchCount + 1;
-                if (watchCount > maxWatchCount) {
-                    // erreur !
-                    console.error("script pas charge a temps");
+        loadToolBox = {
+            loadJSON: function (url, callback, param) {
+                if (xhrStatus) {
+                    xhr.get(baseurl + url, callback, param);
                 } else {
-                    setTimeout(loaderWatcher, 100);
+                    insertJSON("json.php?s=" + url + "&c=" + callback);
                 }
-            }
-        },
-        loadJavascript = function (url, id) {
-            scriptsLoaded[id] = false;
-            var script = document.createElement('script');
-            script.type = 'text/javascript';
-            script.src = baseurl + "/" + url + id + ".js";
-            head.appendChild(script);
-            return script;
-        },
-        allRessourcesAreLoaded = function () {
-            var options = {
-                width: 1000,
-                height: 2100
             },
-                survivediv = document.getElementById("survivediv");
-            mapLoader = new mapLoaderFactory("testMap", loadToolBox, notifyMapLoaded, imagesToLoad);
-            spriteLoader = new spriteLoaderFactory(loadToolBox, notifySpritesLoaded, imagesToLoad);
-            itemsLoader = new itemsLoaderFactory(loadToolBox, notifyItemsLoaded, imagesToLoad);
-            entityFactory = new entityFactoryConstructor();
-            survive = new surviveFactory(survivediv, options);
+            insertJSON: function (url) {
+                var script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.src = baseurl + "/" + url;
+                head.appendChild(script);
+                return script;
+            },
+            parseResult: function (s) {
+                if (xhrStatus) {
+                    return JSON.parse(s);
+                } else {
+                    return s;
+                }
+            },
+            xhrStatus: xhrStatus
+        };
 
-            mapLoader.load();
-            spriteLoader.load();
-            itemsLoader.load();
+    function ressourceLoaded(ressourceId) {
+        scriptsLoaded[ressourceId] = true;
+    }
+
+    function allRessourcesAreLoaded() {
+        var options = {
+            width: 1000,
+            height: 2100
         },
-        notifyItemsLoaded = function () {
-            itemsLoaded = true;
-            notifyImageListUpdated();
-        },
-        notifySpritesLoaded = function () {
-            spritesLoaded = true;
-            notifyImageListUpdated();
+            survivediv = document.getElementById("survivediv");
+        mapLoader = new mapLoaderFactory("testMap", loadToolBox, notifyMapLoaded, imagesToLoad);
+        spriteLoader = new spriteLoaderFactory(loadToolBox, notifySpritesLoaded, imagesToLoad);
+        itemsLoader = new itemsLoaderFactory(loadToolBox, notifyItemsLoaded, imagesToLoad);
+        entityFactory = new entityFactoryConstructor();
+        survive = new surviveFactory(survivediv, options);
+
+        mapLoader.load();
+        spriteLoader.load();
+        itemsLoader.load();
+    }
+
+    function loaderWatcher() {
+        var isAllLoaded = true,
+            scriptId;
+        for (scriptId in scriptsLoaded) {
+            if (scriptsLoaded[scriptId] === false) {
+                isAllLoaded = false;
+                break;
+            }
         }
 
-    var notifyMapLoaded = function () {
+        if (isAllLoaded) {
+            allRessourcesAreLoaded();
+        } else {
+            watchCount = watchCount + 1;
+            if (watchCount > maxWatchCount) {
+                // erreur !
+                console.error("script pas charge a temps");
+            } else {
+                setTimeout(loaderWatcher, 100);
+            }
+        }
+    }
+
+    function loadJavascript(url, id) {
+        scriptsLoaded[id] = false;
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = baseurl + "/" + url + id + ".js";
+        head.appendChild(script);
+        return script;
+    }
+
+
+    function notifyItemsLoaded() {
+        itemsLoaded = true;
+        notifyImageListUpdated();
+    }
+    function notifySpritesLoaded() {
+        spritesLoaded = true;
+        notifyImageListUpdated();
+    }
+
+    function notifyMapLoaded() {
         mapLoaded = true;
         notifyImageListUpdated();
     }
-    var notifyImageListUpdated = function () {
+
+    function notifyImageListUpdated() {
         if (mapLoaded && spritesLoaded && itemsLoaded) {
             imageLoader = new imagesLoaderBuilder();
             imageLoader.load(imagesToLoad, notifyImagesLoaded, baseurl);
@@ -98,9 +129,11 @@ var loadSurvive = function () {
         console.log("images loaded, cool !");
         initGame();
     }
-    var initGame = function () {
+    
+    function initGame() {
 
         var sprites = spriteLoader.sprites;
+
         survive.loadStuff({
             map: mapLoader.map,
             sprites: sprites,
@@ -120,42 +153,20 @@ var loadSurvive = function () {
         survivorA.addToInventory(theItemFactory.createBFG(), 0);
         survivorA.addToInventory(theItemFactory.create9mm(), 4);
         survivorA.addToInventory(theItemFactory.createKnife(), 2);
-    }
-    var loadToolBox = {
-        loadJSON: function (url, callback, param) {
-            if (xhrStatus) {
-                xhr.get(baseurl + url, callback, param);
-            } else {
-                insertJSON("json.php?s=" + url + "&c=" + callback);
-            }
-        },
-        insertJSON: function (url) {
-            var script = document.createElement('script');
-            script.type = 'text/javascript';
-            script.src = baseurl + "/" + url;
-            head.appendChild(script);
-            return script;
-        },
-        parseResult: function (s) {
-            if (xhrStatus) {
-                return JSON.parse(s);
-            } else {
-                return s;
-            }
-        },
-        xhrStatus: xhrStatus
+
+        survive.start();
     }
 
-    loadJavascript('js/', "loadash");
     loadJavascript('js/', "xhr");
     loadJavascript('js/preload/', "mapLoader");
     loadJavascript('js/preload/', "spriteLoader");
     loadJavascript('js/preload/', "imagesLoader");
     loadJavascript('js/preload/', "itemsLoader");
+    loadJavascript('js/game/', "animation");
     loadJavascript('js/game/', "entity");
     loadJavascript('js/game/', "item");
+    loadJavascript('js/game/', "mouseManager");
     loadJavascript('js/', "survive");
-    // loadJavascript('js/preload/', "imagesLoader");
     loaderWatcher();
     return {
         "ressourceLoaded": ressourceLoaded,
